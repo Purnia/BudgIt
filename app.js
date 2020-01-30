@@ -14,6 +14,14 @@ var budgetController = (function(){
         this.value= value;
     };
 
+    //private function to total inc or exp
+    var calculateTotal = function(type) {
+        var sum = 0;
+        data.allItems[type].forEach(function(current){
+            sum += current.value;
+        });
+        data.totals[type] = sum;
+    };
 
     var data = {
         allItems: {
@@ -22,14 +30,16 @@ var budgetController = (function(){
         },
         totals: {
             exp: 0,
-            inc: 0,
-        }
+            inc: 0
+        },
+        budget: 0,
+        percentage: -1
     };
 
     //adding a public method so other controllers can add items 
     return {
         addItem: function(type, des, val){
-            var newItem;
+            var newItem, ID;
 //create new id
             if (data.allItems[type].length > 0) {
                 ID = data.allItems[type][data.allItems[type].length - 1].id + 1;
@@ -51,6 +61,31 @@ var budgetController = (function(){
 
         },
 
+        calculateBudget: function(){
+            // calculate total income and expenses
+        calculateTotal('exp');
+        calculateTotal('inc');
+
+            // calculate the budget: income-expenses
+
+            data.budget = data.totals.inc - data.totals.exp
+            //calculate perctage of income that we spent
+            if (data.totals.inc > 0){
+            data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+        } else {
+            data.percentage = -1;
+        }
+        },
+
+        getBudget: function () {
+            return{
+                budget: data.budget,
+                totalInc: data.totals.inc,
+                totalExp: data.totals.exp,
+                percentage: data.percentage
+            };
+        },
+
         testing: function(){
             console.log(data);
         }
@@ -70,8 +105,14 @@ var UIController = (function(){
         inputValue : '.add__value',
         inputBtn : '.add__btn',
         incomeContainer: '.income__list',
-        expenseContainer: '.expenses__list'
+        expenseContainer: '.expenses__list',
+        budgetLabel: '.budget__value',
+        incomeLabel: '.budget__income--value',
+        expensesLabel: '.budget__expenses--value',
+        percentageLabel: '.budget__expenses--percentage'
+
     }
+   
 
     return {
         getInput: function(){
@@ -86,23 +127,25 @@ var UIController = (function(){
 
         addListItem: function(obj, type) {
             var html, newHtml, element;
-            //create HTML string with placeholder text
-
-            if(type === 'inc'){
-            element = DOMstrings.incomeContainer;
-           html = '<div class="item clearfix" id="income-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
-            } else if (type === 'exp'){
+            // Create HTML string with placeholder text
+            
+            if (type === 'inc') {
+                element = DOMstrings.incomeContainer;
+                
+                html = '<div class="item clearfix" id="inc-%id%"> <div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
+            } else if (type === 'exp') {
                 element = DOMstrings.expenseContainer;
-          html = '<div class="item clearfix" id="income-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
+                
+                html = '<div class="item clearfix" id="exp-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
             }
-          //replace placeholder with actual data 
+            
+            // Replace the placeholder text with some actual data
             newHtml = html.replace('%id%', obj.id);
             newHtml = newHtml.replace('%description%', obj.description);
-            newHtml = newHtml.replace('%value', obj.value);
-
-            //insert html to dom 
+            newHtml = newHtml.replace('%value%', obj.value);
+            
+            // Insert the HTML into the DOM
             document.querySelector(element).insertAdjacentHTML('beforeend', newHtml);
-
         },
 
         clearFields: function() {
@@ -118,6 +161,20 @@ var UIController = (function(){
             });
 
             fieldsArray[0].focus();
+
+        },
+
+        displayBudget: function(obj){
+            document.querySelector(DOMstrings.budgetLabel).textContent = obj.budget;
+            document.querySelector(DOMstrings.incomeLabel).textContent = obj.totalInc;
+            document.querySelector(DOMstrings.expensesLabel).textContent = obj.totalExp;
+            
+
+            if (obj.percentage > 0){
+                document.querySelector(DOMstrings.percentageLabel).textContent = obj.percentage + '%';
+            } else {
+                document.querySelector(DOMstrings.percentageLabel).textContent = '----';
+            }
 
         },
 
@@ -152,9 +209,12 @@ var controller = (function(budgetCtrl, UICtrl){
     var updateBudget = function() {
         // 1. calculate budget
 
-        // 2. Return the budget
+        budgetCtrl.calculateBudget();
 
+        // 2. Return the budget
+        var budget = budgetCtrl.getBudget();
         // 3. Display the budget on the UI 
+        UICtrl.displayBudget(budget);
     };
 
 
@@ -182,6 +242,12 @@ var controller = (function(budgetCtrl, UICtrl){
     return {
         init: function(){
             console.log('app has started');
+            UICtrl.displayBudget({
+                budget: 0,
+                totalInc: 0,
+                totalExp: 0,
+                percentage: -1
+            });
             setupEventListeners();
         }
     }
