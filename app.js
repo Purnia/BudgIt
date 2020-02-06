@@ -187,6 +187,13 @@ var UIController = (function(){
 
     };
 
+
+    var nodeListforEach = function(list, callback) {
+        for (var i = 0; i < list.length; i++) {
+            callback(list[i], i);
+        }
+    };
+
     return {
         getInput: function(){
             return {
@@ -266,11 +273,6 @@ var UIController = (function(){
 
             var fields = document.querySelectorAll(DOMstrings.expensesPercentageLabel);
 
-            var nodeListforEach = function(list, callback) {
-                for (var i = 0; i < list.length; i++) {
-                    callback(list[i], i);
-                }
-            };
 
             nodeListforEach(fields, function(current, index) {
 
@@ -298,7 +300,20 @@ var UIController = (function(){
 
         },
 
-     
+        changedType: function(){
+
+            var fields = document.querySelectorAll(
+                DOMstrings.inputType + ',' +
+                DOMstrings.inputDescription + ',' +
+                DOMstrings.inputValue);
+
+            nodeListforEach(fields, function(cur) {
+                cur.classList.toggle('red-focus');
+
+            });
+
+
+        },
         //return domstrings so you have access to these values outside as well 
 
         getDomstrings: function(){
@@ -326,7 +341,8 @@ var controller = (function(budgetCtrl, UICtrl){
             }
         });
 
-        document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem )
+        document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem );
+        document.querySelector(DOM.inputType).addEventListener('change', UICtrl.changedType);
     };
 
     var updateBudget = function() {
